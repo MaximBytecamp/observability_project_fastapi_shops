@@ -1,0 +1,13 @@
+# Источник данных подключается при запуске Grafana — вручную ничего настраивать не нужно.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus          # на этот uid ссылаются панели дашборда
+    type: prometheus
+    access: proxy            # запросы к Prometheus делает сервер Grafana, не браузер
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 15s      # совпадает со scrape_interval

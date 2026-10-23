@@ -1,0 +1,12 @@
+# Подключение дашбордов из файлов: Grafana читает все JSON из этой папки.
+apiVersion: 1
+
+providers:
+  - name: coffee
+    folder: Кофейня
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards
