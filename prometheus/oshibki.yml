@@ -1,0 +1,58 @@
+# Настройки с НАМЕРЕННЫМИ ошибками — для опыта на странице Status → Target health.
+# Запуск:  PROM_CONFIG=oshibki.yml docker compose up -d
+# Возврат: docker compose up -d
+#
+# Рабочие задания оставлены, чтобы дашборд продолжал показывать данные.
+# Ниже четыре задания, в каждом ровно одна ошибка.
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # --- рабочие задания (как в prometheus.yml) ---
+  - job_name: coffee-api
+    static_configs:
+      - targets: ["api:8000"]
+        labels:
+          env: dev
+
+  - job_name: pushgateway
+    honor_labels: true
+    static_configs:
+      - targets: ["pushgateway:9091"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # --- задания с ошибками ---
+
+  # Ошибка 1: неверный путь. Приложение отвечает, но по /stats метрик нет.
+  # Ожидаемо: server returned HTTP status 404 Not Found
+  - job_name: wrong-path
+    metrics_path: /stats
+    static_configs:
+      - targets: ["api:8000"]
+
+  # Ошибка 2: localhost. Внутри контейнера Prometheus localhost — это сам
+  # контейнер Prometheus, а не API. На порту 8000 там никто не слушает.
+  # Ожидаемо: dial tcp [::1]:8000: connect: connection refused
+  - job_name: localhost
+    static_configs:
+      - targets: ["localhost:8000"]
+
+  # Ошибка 3: слишком маленький timeout. /metrics/slow отвечает через 2 с,
+  # а ждём только 1 с.
+  # Ожидаемо: context deadline exceeded
+  - job_name: slow
+    metrics_path: /metrics/slow
+    scrape_timeout: 1s
+    static_configs:
+      - targets: ["api:8000"]
+
+  # Ошибка 4: неверный порт. Контейнер api существует, но на 8001 никто не слушает.
+  # Ожидаемо: dial tcp <IP контейнера api>:8001: connect: connection refused
+  - job_name: wrong-port
+    static_configs:
+      - targets: ["api:8001"]
