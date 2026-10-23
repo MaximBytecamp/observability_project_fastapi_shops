@@ -1,0 +1,33 @@
+# Рабочие настройки Prometheus для стенда кофейни.
+# Проверка файла: docker compose exec prometheus promtool check config /etc/prometheus/prometheus.yml
+# Перечитать без перезапуска: curl -X POST http://127.0.0.1:9097/-/reload
+
+global:
+  scrape_interval: 15s   # раз в 15 с Prometheus сам идёт к каждой цели (pull)
+  scrape_timeout: 10s    # ответ дольше 10 с — scrape неудачен, up = 0
+
+scrape_configs:
+  # API кофейни. Prometheus ходит на http://api:8000/metrics
+  # (имя api — имя сервиса в compose.yaml, внутри сети Docker оно резолвится).
+  # К каждому ряду Prometheus добавит job="coffee-api" и instance="api:8000".
+  - job_name: coffee-api
+    static_configs:
+      - targets: ["api:8000"]
+        labels:
+          env: dev           # постоянная метка: на каком стенде собрано
+
+  # Pushgateway: хранит метрики, которые прислали короткие задачи.
+  # honor_labels: true — сохранять метки job/instance, с которыми метрику
+  # прислали в Pushgateway. Без этого Prometheus перезаписал бы их своими:
+  # job="pushgateway", instance="pushgateway:9091", а присланные значения
+  # переименовал бы в exported_job / exported_instance. Тогда метрика ночного
+  # отчёта «принадлежала» бы Pushgateway, а не задаче daily_report.
+  - job_name: pushgateway
+    honor_labels: true
+    static_configs:
+      - targets: ["pushgateway:9091"]
+
+  # Сам Prometheus: у него тоже есть /metrics.
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
